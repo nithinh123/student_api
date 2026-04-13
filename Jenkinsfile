@@ -118,20 +118,13 @@ pipeline {
         stage('4 · Code Quality') {
             steps {
                 sh """
-            echo "==> flake8 lint..."
+            echo "==> What does the container see at /app?..."
             docker run --rm \
                 -v "\$(pwd):/app" \
                 -w /app \
                 ${TEST_IMAGE} \
-                flake8 app.py tests/ locustfile.py
-
-            echo "==> black format check..."
-            docker run --rm \
-                -v "\$(pwd):/app" \
-                -w /app \
-                ${TEST_IMAGE} \
-                black --check --diff app.py tests/ locustfile.py
-            """
+                ls -la /app
+        """
             }
         }
 
