@@ -134,28 +134,29 @@ pipeline {
         stage('5 · Start API') {
             steps {
                 sh """
-                    echo "==> Starting API container..."
-                    docker run -d \
-                        --name ${CONTAINER_NAME} \
-                        --network ${NETWORK_NAME} \
-                        -p ${params.API_PORT}:5000 \
-                        ${APP_IMAGE}
+            echo "==> Starting API container..."
+            docker run -d \
+                --name ${CONTAINER_NAME} \
+                --network ${NETWORK_NAME} \
+                -p ${params.API_PORT}:5000 \
+                ${APP_IMAGE}
 
-                    echo "==> Polling /health until ready (max 60s)..."
-                    for i in \$(seq 1 30); do
-                        STATUS=\$(curl -s -o /dev/null -w "%{http_code}" \
-                            http://localhost:${params.API_PORT}/health 2>/dev/null || echo "000")
-                        if [ "\$STATUS" = "200" ]; then
-                            echo "API healthy after \${i} attempts."
-                            exit 0
-                        fi
-                        echo "  Attempt \${i}: status=\${STATUS}, retrying..."
-                        sleep 2
-                    done
-                    echo "ERROR: API did not become healthy in time."
-                    docker logs ${CONTAINER_NAME}
-                    exit 1
-                """
+            echo "==> Polling /health until ready (max 60s)..."
+            for i in \$(seq 1 30); do
+                STATUS=\$(curl -s -o /dev/null -w "%{http_code}" \
+                    http://${CONTAINER_NAME}:5000/health 2>/dev/null)
+                if [ -z "\$STATUS" ]; then STATUS="000"; fi
+                if [ "\$STATUS" = "200" ]; then
+                    echo "API healthy after \${i} attempts."
+                    exit 0
+                fi
+                echo "  Attempt \${i}: status=\${STATUS}, retrying..."
+                sleep 2
+            done
+            echo "ERROR: API did not become healthy in time."
+            docker logs ${CONTAINER_NAME}
+            exit 1
+        """
             }
         }
 
