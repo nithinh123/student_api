@@ -4,8 +4,8 @@
  * Stages:
  *  1. Checkout         — pull source, capture git metadata, stash
  *  2. Environment Prep — ensure roku_net network exists (idempotent)
- *  3. Code Quality     — flake8 lint + black format check
- *  4. Build Images     — build app + test runner images in parallel
+ *  3. Build Images     — build app + test runner images in parallel
+ *  4. Code Quality     — flake8 lint + black format check (runs inside test image)
  *  5. Start API        — run Flask container, poll until healthy
  *  6. Smoke Tests      — fast sanity: health + one api transaction
  *  7. Functional Tests — integration tests, parallel workers
@@ -91,24 +91,10 @@ pipeline {
         }
 
         // ─────────────────────────────────────────────────────────────────────
-        // Stage 3 · Code Quality
+        // Stage 3 · Build Images  (parallel)
+        // Must run before Code Quality so the test image exists for linting
         // ─────────────────────────────────────────────────────────────────────
-        stage('3 · Code Quality') {
-            steps {
-                sh """
-                        docker run --rm \
-                        -v \$(pwd):/app \
-                        -w /app \
-                        ${TEST_IMAGE} \
-                        sh -c "flake8 app.py tests/ locustfile.py && black --check --diff app.py tests/ locustfile.py"
-        """
-            }
-        }
-
-        // ─────────────────────────────────────────────────────────────────────
-        // Stage 4 · Build Images  (parallel)
-        // ─────────────────────────────────────────────────────────────────────
-        stage('4 · Build Images') {
+        stage('3 · Build Images') {
             parallel {
                 stage('Build app image') {
                     steps {
@@ -120,6 +106,25 @@ pipeline {
                         sh "docker build -t ${TEST_IMAGE} -f Dockerfile.test ."
                     }
                 }
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        // Stage 4 · Code Quality
+        // Runs inside the test image — no Python needed on the Jenkins host.
+        // Single-quoted sh -c argument ensures && runs inside the container,
+        // not on the Jenkins agent shell.
+        // ─────────────────────────────────────────────────────────────────────
+        stage('4 · Code Quality') {
+            steps {
+                sh """
+                    echo "==> flake8 lint + black format check (inside test image)..."
+                    docker run --rm \
+                        -v \$(pwd):/app \
+                        -w /app \
+                        ${TEST_IMAGE} \
+                        sh -c 'flake8 app.py tests/ locustfile.py && black --check --diff app.py tests/ locustfile.py'
+                """
             }
         }
 
