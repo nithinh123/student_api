@@ -7,5 +7,6 @@ RUN pip install --no-cache-dir -r requirements-test.txt
 
 COPY tests/ ./tests/
 COPY locustfile.py .
+COPY app.py .
 
 CMD ["pytest", "tests/", "-v"]

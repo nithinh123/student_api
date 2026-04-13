@@ -118,6 +118,10 @@ pipeline {
         stage('4 · Code Quality') {
             steps {
                 sh """
+                    echo "==> Workspace contents..."
+                    ls -la \$(pwd)
+                    echo "==> Searching for app.py..."
+                    find \$(pwd) -name "app.py" 2>/dev/null
                     echo "==> flake8 lint + black format check (inside test image)..."
                     docker run --rm \
                         -v \$(pwd):/app \
