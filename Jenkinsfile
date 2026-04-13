@@ -118,12 +118,19 @@ pipeline {
         stage('4 · Code Quality') {
             steps {
                 sh """
-            echo "==> What does the container see at /app?..."
+            echo "==> flake8 lint..."
             docker run --rm \
-                -v "\$(pwd):/app" \
-                -w /app \
+                -v jenkins-data:/var/jenkins_home \
+                -w /var/jenkins_home/workspace/student_api_test \
                 ${TEST_IMAGE} \
-                ls -la /app
+                flake8 app.py tests/ locustfile.py
+
+            echo "==> black format check..."
+            docker run --rm \
+                -v jenkins-data:/var/jenkins_home \
+                -w /var/jenkins_home/workspace/student_api_test \
+                ${TEST_IMAGE} \
+                black --check --diff app.py tests/ locustfile.py
         """
             }
         }
@@ -168,13 +175,16 @@ pipeline {
         stage('6 · Smoke Tests') {
             steps {
                 sh """
-            echo "WORKSPACE is: \${WORKSPACE}"
-            echo "pwd is: \$(pwd)"
             docker run --rm \
-                -v "\${WORKSPACE}:/app" \
-                -w /app \
+                --network ${NETWORK_NAME} \
+                -e API_BASE_URL=http://${CONTAINER_NAME}:5000 \
+                -v jenkins-data:/var/jenkins_home \
+                -w /var/jenkins_home/workspace/student_api_test \
                 ${TEST_IMAGE} \
-                ls -la /app
+                pytest tests/test_smoke.py -v \
+                    --junitxml=reports/smoke-results.xml \
+                    --html=reports/smoke-report.html \
+                    --self-contained-html
         """
             }
         }
