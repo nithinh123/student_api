@@ -1,12 +1,11 @@
 FROM python:3.11-slim
 
-WORKDIR /tests
+WORKDIR /app
 
 COPY requirements-test.txt .
 RUN pip install --no-cache-dir -r requirements-test.txt
 
-COPY tests/ ./tests/
-COPY locustfile.py .
-COPY app.py .
+# No COPY of source files — they are mounted at runtime via -v
+# This means the same image works for both code quality and test stages
 
 CMD ["pytest", "tests/", "-v"]
