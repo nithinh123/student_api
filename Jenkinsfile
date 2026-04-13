@@ -141,16 +141,18 @@ pipeline {
                 -p ${params.API_PORT}:5000 \
                 ${APP_IMAGE}
 
+            echo "==> Waiting 5s for gunicorn to start..."
+            sleep 5
+
             echo "==> Polling /health until ready (max 60s)..."
             for i in \$(seq 1 30); do
                 STATUS=\$(curl -s -o /dev/null -w "%{http_code}" \
-                    http://${CONTAINER_NAME}:5000/health 2>/dev/null)
-                if [ -z "\$STATUS" ]; then STATUS="000"; fi
+                    http://${CONTAINER_NAME}:5000/health 2>/dev/null || echo "000")
+                echo "  Attempt \${i}: status=\${STATUS}"
                 if [ "\$STATUS" = "200" ]; then
                     echo "API healthy after \${i} attempts."
                     exit 0
                 fi
-                echo "  Attempt \${i}: status=\${STATUS}, retrying..."
                 sleep 2
             done
             echo "ERROR: API did not become healthy in time."
