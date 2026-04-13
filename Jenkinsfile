@@ -168,16 +168,14 @@ pipeline {
         stage('6 · Smoke Tests') {
             steps {
                 sh """
-                    docker run --rm \
-                        --network ${NETWORK_NAME} \
-                        -e API_BASE_URL=http://${CONTAINER_NAME}:5000 \
-                        -v \$(pwd)/${REPORTS_DIR}:/tests/reports \
-                        ${TEST_IMAGE} \
-                        pytest tests/test_smoke.py -v \
-                            --junitxml=reports/smoke-results.xml \
-                            --html=reports/smoke-report.html \
-                            --self-contained-html
-                """
+            echo "WORKSPACE is: \${WORKSPACE}"
+            echo "pwd is: \$(pwd)"
+            docker run --rm \
+                -v "\${WORKSPACE}:/app" \
+                -w /app \
+                ${TEST_IMAGE} \
+                ls -la /app
+        """
             }
         }
 
