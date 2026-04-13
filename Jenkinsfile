@@ -96,14 +96,12 @@ pipeline {
         stage('3 · Code Quality') {
             steps {
                 sh """
-                    pip install --quiet flake8 black
-
-                    echo "==> flake8 lint..."
-                    flake8 app.py tests/ locustfile.py
-
-                    echo "==> black format check..."
-                    black --check --diff app.py tests/ locustfile.py
-                """
+                        docker run --rm \
+                        -v \$(pwd):/app \
+                        -w /app \
+                        ${TEST_IMAGE} \
+                        sh -c "flake8 app.py tests/ locustfile.py && black --check --diff app.py tests/ locustfile.py"
+        """
             }
         }
 
